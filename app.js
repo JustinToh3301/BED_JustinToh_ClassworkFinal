@@ -220,18 +220,22 @@ app.get("/publishers" , async (req , res) => {
 //GET books
 
 app.get('/books', async (req, res) => {
+  const {title} = req.query;
   try {
-    const connection = await sql.connect(dbConfig);
-    const result = await connection 
-      .request()
-      .query('SELECT ISBN, Title, YearPublish, PublisherID, BookCat FROM Book');
+    connection = await sql.connect(dbConfig);
+    const request = connection.request(); 
+    let query = "SELECT ISBN , Title , YearPublish, PublisherID, BookCat FROM Book" ;
+    if (title) {
+      query += " WHERE Title LIKE '%' + @title + '%'";
+      request.input('title' , sql.VarChar(200) , title);
+    }
+    const result = await request.query(query);
+    res.status(200).json(result.recordset);}
+    catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });}
+    finally { if (connection) await connection.close();}});
 
-    res.json(result.recordset);
-  } catch (err) {
-    console.error('Error fetching books:', err);
-    res.status(500).json({ error: 'Database error' });
-  }
-});
 
 
 app.get('/books/:isbn' , async (req , res) => {
